@@ -364,6 +364,11 @@ describe HappyMapper do
     it "should provide #parse" do
       @klass.should respond_to(:parse)
     end
+    
+    it "should allow a callback to be defined" do
+      @klass.after_parse {}
+      @klass.instance_variable_get("@after_parse_callback").should be_kind_of(Proc)
+    end
   end
   
   describe "#attributes" do

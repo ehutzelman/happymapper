@@ -95,6 +95,7 @@ module HappyMapper
                     elem.from_xml_node(n, namespace))
         end
         
+        obj.instance_eval(&@after_parse_callback) if @after_parse_callback
         obj
       end
 
@@ -106,6 +107,10 @@ module HappyMapper
       else
         collection
       end
+    end
+    
+    def after_parse(&block)
+      @after_parse_callback = block
     end
   end
 end
