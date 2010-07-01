@@ -270,6 +270,20 @@ module GitHub
   end
 end
 
+class Photo
+  include HappyMapper
+
+  attribute :id, String
+  attribute :size, String
+  element :url, String, :tag => '.'
+  
+  after_parse do
+    @post_processing_stuff = true
+  end
+  
+end
+
+
 describe HappyMapper do
   
   describe "being included into another class" do
@@ -558,6 +572,11 @@ describe HappyMapper do
     property = entry.properties[0]
     property.name.should == 'ga:accountId'
     property.value.should == '85301'
+  end
+  
+  it "should callback after_parse block if provided" do
+    photos = Photo.parse(fixture_file('photos.xml'))
+    photos.first.instance_variable_get('@post_processing_stuff').should == true
   end
   
   it "should allow instantiating with a string" do
