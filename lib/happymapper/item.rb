@@ -26,9 +26,9 @@ module HappyMapper
       @constant ||= constantize(type)
     end
         
-    def from_xml_node(node, namespace)
+    def from_xml_node(node, namespace, namespaces)
       if primitive?
-        find(node, namespace) do |n|
+        find(node, namespace, namespaces) do |n|
           if n.respond_to?(:content)
             typecast(n.content)
           else
@@ -37,7 +37,7 @@ module HappyMapper
         end
       else
         if options[:parser]
-          find(node, namespace) do |n|
+          find(node, namespace, namespaces) do |n|
             if n.respond_to?(:content) && !options[:raw]
               value = n.content
             else
@@ -127,7 +127,7 @@ module HappyMapper
         end
       end
       
-      def find(node, namespace, &block)
+      def find(node, namespace, namespaces, &block)
         if options[:namespace] == false
           namespace = nil
         elsif options[:namespace]
@@ -140,9 +140,9 @@ module HappyMapper
         
         if element?
           if(options[:single].nil? || options[:single])
-            result = node.find_first(xpath(namespace), namespace)
+            result = node.xpath(xpath(namespace), namespaces).first
           else
-            result = node.find(xpath(namespace))
+            result = node.xpath(xpath(namespace))
           end
           # puts "vfxn: #{xpath} #{result.inspect}"
           if result
@@ -158,7 +158,7 @@ module HappyMapper
             if options[:attributes].is_a?(Hash)
               result.attributes.each do |xml_attribute|
                 if attribute_options = options[:attributes][xml_attribute.name.to_sym]
-                  attribute_value = Attribute.new(xml_attribute.name.to_sym, *attribute_options).from_xml_node(result, namespace)
+                  attribute_value = Attribute.new(xml_attribute.name.to_sym, *attribute_options).from_xml_node(result, namespace, namespaces)
                   result.instance_eval <<-EOV
                     def value.#{xml_attribute.name}
                       #{attribute_value.inspect}

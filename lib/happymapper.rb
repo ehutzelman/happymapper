@@ -1,6 +1,6 @@
 require 'date'
 require 'time'
-require 'xml'
+require 'nokogiri'
 
 class Boolean; end
 
@@ -75,37 +75,47 @@ module HappyMapper
     end
 
     def parse(xml, options = {})
-      if xml.is_a?(XML::Node)
+      if xml.is_a?(Nokogiri::XML::Node)
         node = xml
       else
-        if xml.is_a?(XML::Document)
+        if xml.is_a?(Nokogiri::XML::Document)
           node = xml.root
         else
-          node = XML::Parser.string(xml).parse.root
+          node = Nokogiri::XML(xml).root
         end
 
         root = node.name == tag_name
       end
 
-      namespace = @namespace || (node.namespaces && node.namespaces.default)
-      namespace = "#{DEFAULT_NS}:#{namespace}" if namespace
+      namespaces ||= {}
+      namespaces = namespaces.merge(node.namespaces)
+      
+      if namespaces.has_key?("xmlns")
+        namespace ||= DEFAULT_NS
+        namespaces[namespace] = namespaces.delete("xmlns")
+      elsif namespaces.has_key?(DEFAULT_NS)
+        namespace ||= DEFAULT_NS
+      end
+
+      # namespace = @namespace || (node.namespaces && node.namespaces.default)
+      # namespace = "#{DEFAULT_NS}:#{namespace}" if namespace
 
       xpath = root ? '/' : './/'
       xpath += "#{DEFAULT_NS}:" if namespace
       xpath += tag_name
 
-      nodes = node.find(xpath, Array(namespace))
+      nodes = node.xpath(xpath, namespaces)
       collection = nodes.collect do |n|
         obj = new
 
         attributes.each do |attr|
           obj.send("#{attr.method_name}=",
-                    attr.from_xml_node(n, namespace))
+                    attr.from_xml_node(n, namespace, namespaces))
         end
 
         elements.each do |elem|
           obj.send("#{elem.method_name}=",
-                    elem.from_xml_node(n, namespace))
+                    elem.from_xml_node(n, namespace, namespaces))
         end
 
         obj.send("#{@content}=", n.content) if @content
